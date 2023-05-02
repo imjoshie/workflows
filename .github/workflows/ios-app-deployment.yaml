@@ -1,0 +1,35 @@
+name: iOS App Deployment Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Xcode
+        uses: actions/setup-xcode@v2
+        with:
+          xcode-version: '13.x'
+      - name: Install dependencies
+        run: |
+          bundle install
+          pod install
+      - name: Build app
+        run: |
+          xcodebuild -workspace MyProject.xcworkspace -scheme MyScheme -destination "generic/platform=iOS" -configuration Release -archivePath "build/MyApp.xcarchive" archive
+      - name: Create IPA file
+        run: xcodebuild -exportArchive -archivePath "build/MyApp.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build"
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-to-testflight@v1
+        with:
+          api_key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          issuer_id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          key_id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          app_id: '1234567890'
+          ipa_path: 'build/MyApp.ipa'
+          notify_external_testers: true
